@@ -1,113 +1,158 @@
 # MMHeatmap
+
 <img width="375" alt="HeatmapSample" src="https://user-images.githubusercontent.com/72431055/115141826-5572b580-a079-11eb-822b-4e05cf9273ca.png">
 
-Heatmap style calendar made in SwiftUI.
+SwiftUI heatmap calendar view.
+
 ## Installation
-1. Use **"Swift Package Manager"**:  
-`File -> Swift Packages -> Add Package Dependency`  
-  
-2. Paste URL:  
+
+Use Swift Package Manager:
+
+1. In Xcode: `File -> Add Package Dependencies...`
+2. Enter package URL:
+
 `https://github.com/s-n-1-0/MMHeatmap.git`
 
+If you use a fork, replace the URL with your fork URL.
 
-## MMHeatmapView
-Displays a calendar from "start" to "end".
+## Quick Start
+
 ```swift
-//"import  MMHeatmap" is required
+import MMHeatmap
 
-var calendar = Calendar.autoupdatingCurrent
-let start = calendar.date(from: DateComponents(year:2021,month: 12,day: 20))!
-let end = calendar.date(from: DateComponents(year:2022,month: 4,day: 3))! // or nil = now
-let data = [
-    MMHeatmapData(year: 2022, month: 3, day: 10, value: 5, calendar: calendar),
-    MMHeatmapData(year: 2022, month: 4, day:1, value: 10, calendar: calendar)
+let systemCalendar = Calendar.autoupdatingCurrent
+let start = systemCalendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+let end = systemCalendar.date(from: DateComponents(year: 2026, month: 12, day: 31))!
+
+let data: [MMHeatmapData] = [
+    MMHeatmapData(year: 2026, month: 1, day: 1, value: 4),
+    MMHeatmapData(year: 2026, month: 1, day: 2, value: 8)
 ]
 
-let locale = Locale(identifier: "tr_TR")
-let week = MMHeatmapStyle.localizedWeekSymbols(
-    calendar: calendar,
-    locale: locale,
+let labelLocale = Locale(identifier: "tr_TR")
+let weekLabels = MMHeatmapStyle.localizedWeekSymbols(
+    locale: labelLocale,
     style: .short
 )
 
-//view
-HStack{
-    MMHeatmapView(
-        start: start,
-        end: end,
-        data: data,
-        style: MMHeatmapStyle(
-            baseCellColor: UIColor.systemIndigo,
-            week: week,
-            isScroll: true
-        ),
-        calendar: calendar,
-        locale: locale,
-        timeZone: .autoupdatingCurrent
-    )
-    Spacer()
-}
-```
-*The variable "style:" is optional.  
-<br>
-## MMHeatmapViewData
-Calendar cell data.  
-Please not duplicate dates in MMHeatmapViewData.
-#### **(year,month,day) or date**
+let style = MMHeatmapStyle(
+    baseCellColor: .systemIndigo,
+    week: weekLabels,
+    isScroll: true
+)
 
-```swift
-public init(date _date:Date,value:Int,calendar: Calendar = Calendar(identifier: .gregorian))
-```
-```swift
-public init(year:Int,month:Int,day:Int,value:Int,calendar: Calendar = Calendar(identifier: .gregorian))
-```
-
-#### **value:**
-Specifies the color strength of the cell.  
-Specify a value greater than or equal to 0.  
-*If you want to set Color.clear, use "nil".
-
-## MMHeatmapStyle
-| Variable  |Description                                                                |     | 
-| ------------- | ------------------------------------------------------------------------------ | --- | 
-| baseCellColor | Maximum color                                                                  |     | 
-| minCellColor  | Color when value is 0                                                          |     | 
-| week          | Notation of the day of the week                                                |     | 
-| dateMMFormat  | Months format<br>Example: 4<br>"M" = 4<br>"MM" = 04<br>"MMM" = en: Apr , ja: 4月 |     |
-|clippedWithEndDate|**true** : If you want to display cells up to end parameter.<br>**false** : if you want to display cells until the end of the month in the last month.|
-|isScroll|scrolling.<br>*Disabled for iOS13|
-
-### Week labels
-
-`week` should contain exactly 7 items and should be ordered from `calendar.firstWeekday`.
-
-Use `MMHeatmapStyle.localizedWeekSymbols(...)` to generate locale-aware labels in the correct order:
-
-```swift
-let week = MMHeatmapStyle.localizedWeekSymbols(
-    calendar: calendar,
-    locale: locale,
-    style: .short // .veryShort / .short / .full
+MMHeatmapView(
+    start: start,
+    end: end,
+    data: data,
+    style: style,
+    labelLocale: labelLocale
 )
 ```
 
-If an invalid `week` array is passed, MMHeatmap falls back to `Sun...Sat` labels.
+## Behavior Policy
 
-`MMHeatmapView` uses the provided `calendar` for date math and week layout semantics.
+- Grid/date semantics always use the system calendar (`Calendar.autoupdatingCurrent`).
+- Week start (`firstWeekday`) always comes from the system/region.
+- `labelLocale` only affects text formatting (month labels).
+- `week` labels must match system week order.
 
-`locale` is used for textual formatting (month labels), and `week` labels should be ordered from `calendar.firstWeekday` to keep labels aligned with heatmap rows.
+This separation prevents locale-related week-start mismatches.
 
-### Behavior notes
+## API Reference
 
-- `calendar` controls grid/date semantics (including `firstWeekday`).
-- `locale` controls text formatting (for example month names).
-- `maxValue == 0` is handled safely during rendering.
+### MMHeatmapView
 
----
+Displays a calendar heatmap from `start` to `end`.
 
-### Use in Widget Extension
+```swift
+public init(
+    start: Date,
+    end: Date? = nil,
+    data: [MMHeatmapData],
+    style: MMHeatmapStyle = MMHeatmapStyle(baseCellColor: .label),
+    layout: MMHeatmapLayout = MMHeatmapLayout(),
+    labelLocale: Locale = .autoupdatingCurrent
+)
+```
 
-Read this. https://github.com/s-n-1-0/MMHeatmap/issues/2
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `start` | `Date` | required | First displayed month anchor. |
+| `end` | `Date?` | `nil` | End date; `nil` means current date. |
+| `data` | `[MMHeatmapData]` | required | Heatmap values by date. |
+| `style` | `MMHeatmapStyle` | default style | Colors, week labels, month format, scroll behavior. |
+| `layout` | `MMHeatmapLayout` | default layout | Cell size and layout metrics. |
+| `labelLocale` | `Locale` | `.autoupdatingCurrent` | Text locale for month label formatting. |
 
-### PR / Issues
-Please PR or Issues if you have any questions.
+### MMHeatmapData
+
+Cell input model. Do not provide duplicate dates.
+
+```swift
+public init(date: Date, value: Int)
+public init(year: Int, month: Int, day: Int, value: Int)
+```
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `value` | `Int` | Color intensity. Use `>= 0` values. |
+
+### MMHeatmapStyle
+
+```swift
+public init(
+    baseCellColor: UIColor,
+    minCellColor: UIColor = .secondarySystemBackground,
+    week: [String] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    dateMMFormat: String = "MMM",
+    clippedWithEndDate: Bool = true,
+    isScroll: Bool = true
+)
+```
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `baseCellColor` | `UIColor` | Maximum color. |
+| `minCellColor` | `UIColor` | Cell color when value is `0`. |
+| `week` | `[String]` | 7 weekday labels, ordered by system `firstWeekday`. |
+| `dateMMFormat` | `String` | Month text format (`M`, `MM`, `MMM`, ...). |
+| `clippedWithEndDate` | `Bool` | If `true`, clip rendering at `end`; otherwise fill through month end. |
+| `isScroll` | `Bool` | Horizontal scrolling behavior (iOS 13 fallback is non-scroll). |
+
+### MMHeatmapStyle.localizedWeekSymbols
+
+Generates locale-aware weekday labels already rotated to the system week start.
+
+```swift
+public static func localizedWeekSymbols(
+    locale: Locale = .autoupdatingCurrent,
+    style: MMHeatmapWeekdaySymbolStyle = .short
+) -> [String]
+```
+
+`MMHeatmapWeekdaySymbolStyle` options:
+
+- `.veryShort`
+- `.short`
+- `.full`
+
+## Notes
+
+- If `week` does not contain exactly 7 labels, MMHeatmap falls back to `Sun...Sat`.
+- Rendering handles `maxValue == 0` safely.
+
+## Breaking Changes (Current Fork)
+
+- `MMHeatmapView` no longer accepts `calendar`, `locale`, or `timeZone`.
+- `MMHeatmapView` now accepts `labelLocale`.
+- `MMHeatmapData` initializers no longer accept `calendar`.
+- `MMHeatmapStyle.localizedWeekSymbols` no longer accepts `calendar`.
+
+## Widget Extension
+
+See: https://github.com/s-n-1-0/MMHeatmap/issues/2
+
+## PR / Issues
+
+PRs and issues are welcome.

@@ -11,7 +11,9 @@ import SwiftUI
  Input data
  */
 public struct MMHeatmapData {
-    public init(date _date:Date,value:Int,calendar: Calendar = Calendar(identifier: .gregorian)){
+    public init(date _date:Date,value:Int){
+        var calendar = Calendar.autoupdatingCurrent
+        calendar.timeZone = .autoupdatingCurrent
         let date = _date.truncateHms(calendar: calendar)
         let comps = date.getYmdhms(calendar: calendar)!
         self.year = comps.year
@@ -20,7 +22,9 @@ public struct MMHeatmapData {
         self.date = date
         self.value = value
     }
-    public init(year:Int,month:Int,day:Int,value:Int,calendar: Calendar = Calendar(identifier: .gregorian)){
+    public init(year:Int,month:Int,day:Int,value:Int){
+        var calendar = Calendar.autoupdatingCurrent
+        calendar.timeZone = .autoupdatingCurrent
         self.year = year
         self.month = month
         self.day = day

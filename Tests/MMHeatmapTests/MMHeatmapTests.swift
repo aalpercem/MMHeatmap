@@ -15,14 +15,18 @@ final class MMHeatmapTests: XCTestCase {
     }
 
     func testLocalizedWeekSymbolsStartsFromCalendarFirstWeekday() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.firstWeekday = 2
+        let calendar = Calendar.autoupdatingCurrent
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US")
+        let raw = formatter.shortStandaloneWeekdaySymbols ?? []
+        let startIndex = max(min(calendar.firstWeekday - 1, 6), 0)
+        let expected = Array(raw[startIndex...]) + Array(raw[..<startIndex])
+
         let symbols = MMHeatmapStyle.localizedWeekSymbols(
-            calendar: calendar,
             locale: Locale(identifier: "en_US"),
             style: .short
         )
-        XCTAssertEqual(symbols.first, "Mon")
-        XCTAssertEqual(symbols.last, "Sun")
+        XCTAssertEqual(symbols, expected)
     }
 }

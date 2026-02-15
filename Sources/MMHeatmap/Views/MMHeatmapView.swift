@@ -7,21 +7,18 @@
 //
 
 import SwiftUI
+import UIKit
 
 public struct MMHeatmapView: View {
     public init(start _start:Date,
                 end _end:Date? = nil,
                 data _data:[MMHeatmapData],
-                style:MMHeatmapStyle = MMHeatmapStyle(baseCellColor: .label),
+                style:MMHeatmapStyle = MMHeatmapStyle(baseCellColor: UIColor.label),
                 layout:MMHeatmapLayout = MMHeatmapLayout(),
-                calendar: Calendar = Calendar(identifier: .gregorian),
-                locale: Locale? = nil,
-                timeZone: TimeZone? = nil
+                labelLocale: Locale = .autoupdatingCurrent
     ){
-        var cal = calendar
-        if let timeZone {
-            cal.timeZone = timeZone
-        }
+        var cal = Calendar.autoupdatingCurrent
+        cal.timeZone = .autoupdatingCurrent
         let start = _start.truncate([.year,.month], calendar: cal)
         let startYear = cal.component(.year, from: start)
         let startMonth = cal.component(.month, from: start)
@@ -29,8 +26,8 @@ public struct MMHeatmapView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = style.dateMMFormat
         formatter.calendar = cal
-        formatter.locale = locale ?? .autoupdatingCurrent
-        formatter.timeZone = timeZone ?? cal.timeZone
+        formatter.locale = labelLocale
+        formatter.timeZone = .autoupdatingCurrent
         let data = _data.dateRange(start: start, end: end)
         self.displayFormatter = formatter
         self.start = start

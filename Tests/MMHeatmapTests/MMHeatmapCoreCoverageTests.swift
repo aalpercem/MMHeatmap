@@ -16,14 +16,14 @@ final class MMHeatmapCoreCoverageTests: XCTestCase {
         XCTAssertNotNil(ymdhms)
     }
 
-    func testMMHeatmapDataYearInitializerUsesProvidedCalendar() {
-        var buddhist = Calendar(identifier: .buddhist)
-        buddhist.timeZone = utc
+    func testMMHeatmapDataYearInitializerUsesSystemCalendar() {
+        var systemCalendar = Calendar.autoupdatingCurrent
+        systemCalendar.timeZone = .autoupdatingCurrent
 
-        let data = MMHeatmapData(year: 2569, month: 1, day: 1, value: 4, calendar: buddhist)
-        let comps = buddhist.dateComponents([.year, .month, .day], from: data.date)
+        let data = MMHeatmapData(year: 2026, month: 1, day: 1, value: 4)
+        let comps = systemCalendar.dateComponents([.year, .month, .day], from: data.date)
 
-        XCTAssertEqual(comps.year, 2569)
+        XCTAssertEqual(comps.year, 2026)
         XCTAssertEqual(comps.month, 1)
         XCTAssertEqual(comps.day, 1)
     }

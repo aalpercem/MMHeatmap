@@ -35,10 +35,10 @@ public class MMHeatmapStyle:ObservableObject{
     public let dateMMFormat:String
 
     public static func localizedWeekSymbols(
-        calendar: Calendar = Calendar(identifier: .gregorian),
         locale: Locale = .autoupdatingCurrent,
         style: MMHeatmapWeekdaySymbolStyle = .short
     ) -> [String] {
+        let calendar = Calendar.autoupdatingCurrent
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.locale = locale

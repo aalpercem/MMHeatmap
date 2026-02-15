@@ -2,81 +2,62 @@ import XCTest
 @testable import MMHeatmap
 
 final class MMHeatmapViewLocaleTests: XCTestCase {
-    private let utc = TimeZone(secondsFromGMT: 0)!
-
-    func testMMHeatmapViewKeepsCalendarWeekSemanticsWhenLocaleProvided() {
-        var calendar = Calendar(identifier: .buddhist)
-        calendar.firstWeekday = 1
-        calendar.timeZone = utc
+    func testMMHeatmapViewUsesSystemWeekSemantics() {
+        let systemCalendar = Calendar.autoupdatingCurrent
 
         let start = Date(timeIntervalSince1970: 1_767_225_600) // 2026-01-01 UTC
         let end = Date(timeIntervalSince1970: 1_798_761_600) // 2026-12-31 UTC
-        let data = [MMHeatmapData(date: start, value: 3, calendar: calendar)]
+        let data = [MMHeatmapData(date: start, value: 3)]
 
         let view = MMHeatmapView(
             start: start,
             end: end,
             data: data,
-            calendar: calendar,
-            locale: Locale(identifier: "tr_TR"),
-            timeZone: utc
+            labelLocale: Locale(identifier: "tr_TR")
         )
 
-        XCTAssertEqual(view.calendar.firstWeekday, 1)
-        XCTAssertEqual(view.sundayLabelIndex, 0)
-        XCTAssertEqual(view.saturdayLabelIndex, 6)
+        XCTAssertEqual(view.calendar.firstWeekday, systemCalendar.firstWeekday)
+        XCTAssertEqual(view.sundayLabelIndex, MMHeatmapView.weekdayIndex(weekday: 1, firstWeekday: systemCalendar.firstWeekday))
+        XCTAssertEqual(view.saturdayLabelIndex, MMHeatmapView.weekdayIndex(weekday: 7, firstWeekday: systemCalendar.firstWeekday))
     }
 
     func testMMHeatmapViewMonthLabelFollowsLocale() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.firstWeekday = 2
-        calendar.timeZone = utc
-
         let start = Date(timeIntervalSince1970: 1_767_225_600) // 2026-01-01 UTC
         let end = Date(timeIntervalSince1970: 1_798_761_600) // 2026-12-31 UTC
-        let data = [MMHeatmapData(date: start, value: 1, calendar: calendar)]
+        let data = [MMHeatmapData(date: start, value: 1)]
 
         let trView = MMHeatmapView(
             start: start,
             end: end,
             data: data,
-            calendar: calendar,
-            locale: Locale(identifier: "tr_TR"),
-            timeZone: utc
+            labelLocale: Locale(identifier: "tr_TR")
         )
 
         let enView = MMHeatmapView(
             start: start,
             end: end,
             data: data,
-            calendar: calendar,
-            locale: Locale(identifier: "en_US"),
-            timeZone: utc
+            labelLocale: Locale(identifier: "en_US")
         )
 
         XCTAssertTrue(trView.getMMLabel(MM: 1).lowercased().hasPrefix("oca"))
         XCTAssertTrue(enView.getMMLabel(MM: 1).hasPrefix("Jan"))
     }
 
-    func testMMHeatmapViewWeekIndicesFollowCalendarFirstWeekday() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.firstWeekday = 2
-        calendar.timeZone = utc
-
+    func testMMHeatmapViewWeekIndicesFollowSystemFirstWeekday() {
+        let systemCalendar = Calendar.autoupdatingCurrent
         let start = Date(timeIntervalSince1970: 1_767_225_600) // 2026-01-01 UTC
         let end = Date(timeIntervalSince1970: 1_798_761_600) // 2026-12-31 UTC
-        let data = [MMHeatmapData(date: start, value: 1, calendar: calendar)]
+        let data = [MMHeatmapData(date: start, value: 1)]
 
         let view = MMHeatmapView(
             start: start,
             end: end,
             data: data,
-            calendar: calendar,
-            locale: Locale(identifier: "en_US"),
-            timeZone: utc
+            labelLocale: Locale(identifier: "en_US")
         )
 
-        XCTAssertEqual(view.sundayLabelIndex, 6)
-        XCTAssertEqual(view.saturdayLabelIndex, 5)
+        XCTAssertEqual(view.sundayLabelIndex, MMHeatmapView.weekdayIndex(weekday: 1, firstWeekday: systemCalendar.firstWeekday))
+        XCTAssertEqual(view.saturdayLabelIndex, MMHeatmapView.weekdayIndex(weekday: 7, firstWeekday: systemCalendar.firstWeekday))
     }
 }
