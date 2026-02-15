@@ -22,16 +22,33 @@ struct MMHeatmapWeekView:View {
     var body: some View{
         VStack(spacing:layout.cellSpacing){
             ForEach(0..<7){ i in
-                RoundedRectangle(cornerRadius: layout.cellSize * 0.2).frame(width: layout.cellSize,height: layout.cellSize).modifier(CellColorModifier(isRange: (i >= start && i <= end ) , value: values[i], maxValue: maxValue,minColor: style.minCellColor,baseColor: style.baseCellColor))
+                RoundedRectangle(cornerRadius: layout.cellSize * 0.2)
+                    .frame(width: layout.cellSize,height: layout.cellSize)
+                    .modifier(CellColorModifier(
+                        isRange: (i >= start && i <= end),
+                        value: i < values.count ? values[i] : nil,
+                        maxValue: maxValue,
+                        minColor: style.minCellColor,
+                        baseColor: style.baseCellColor
+                    ))
             }
         }
     }
 }
+
+func normalizedHeatmapRatio(value: Int, maxValue: Int) -> CGFloat {
+    guard maxValue > 0 else {
+        return value > 0 ? 1 : 0
+    }
+    let ratio = CGFloat(value) / CGFloat(maxValue)
+    return min(max(ratio, 0), 1)
+}
+
 fileprivate struct CellColorModifier:ViewModifier {
     init(isRange:Bool,value:Int?,maxValue:Int,minColor:UIColor,baseColor:UIColor) {
         self.isRange = isRange
         if let v = value{
-            let pct:CGFloat = CGFloat(v) / CGFloat(maxValue)
+            let pct = normalizedHeatmapRatio(value: v, maxValue: maxValue)
             var secondHue:CGFloat = 0
             var secondSaturation:CGFloat = 0
             var secondBrightness:CGFloat = 0

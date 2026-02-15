@@ -8,92 +8,43 @@
 import SwiftUI
 
 struct MMHeatmapMonthView: View {
-    init(yyyy:Int,startMM:Int,MM:Int,data:[MMHeatmapElapsedData],maxValue:Int,maxElapsedDay:Int?) {
-        let calendar = Calendar(identifier: .gregorian)
+    init(yyyy:Int,startMM:Int,MM:Int,data:[MMHeatmapElapsedData],maxValue:Int,maxElapsedDay:Int?,calendar: Calendar) {
         var comp = DateComponents()
         comp.year = yyyy
         comp.month = startMM
         comp.day = 1
-        startDate = calendar.date(from: comp)!
-        let date = calendar.lastDateOfMonth(year: yyyy, month: MM)
-        lastDay = calendar.component(.day, from: date)
-        maxWeeks = calendar.component(.weekOfMonth, from: date)
+        startDate = calendar.date(from: comp)
+            ?? calendar.date(from: DateComponents(year: yyyy, month: MM, day: 1))
+            ?? Date()
         self.yyyy = yyyy
         self.MM = MM
-        self.data = data
+        let dataByElapsedDay = Dictionary(uniqueKeysWithValues: data.map { ($0.elapsedDay, $0.value) })
+        self.grid = MMHeatmapMonthGrid.build(
+            year: yyyy,
+            month: MM,
+            startDate: startDate,
+            dataByElapsedDay: dataByElapsedDay,
+            maxElapsedDay: maxElapsedDay,
+            calendar: calendar
+        )
         self.calendar = calendar
         self.maxValue = maxValue
-        self.maxElapsedDay = maxElapsedDay
     }
     @EnvironmentObject var layout:MMHeatmapLayout
     
     let calendar:Calendar
     let yyyy:Int
     let MM:Int
-    let data:[MMHeatmapElapsedData]
+    let grid: MMHeatmapMonthGrid
     let startDate:Date
-    let lastDay:Int
-    let maxWeeks:Int
     let maxValue:Int
-    let maxElapsedDay:Int?
     var body: some View {
         HStack(spacing:layout.cellSpacing){
-            //表示月
-            ForEach(0..<maxWeeks,id:\.self){ w in
-                let values = getWeekOfMonthDataValues(weekOfMonth: w + 1)
-                //1基準
-                let Idx = investigateWeekIndex(w: w)
-                MMHeatmapWeekView(startIdx: Idx.startIdx, endIdx: Idx.endIdx, values: values, maxValue: maxValue)
+            ForEach(Array(grid.valuesByColumn.enumerated()),id:\.offset){ item in
+                let values = item.element
+                MMHeatmapWeekView(startIdx: 0, endIdx: 6, values: values, maxValue: maxValue)
             }
         }
-    }
-    func makeDateComponents(dd:Int?) -> DateComponents{
-        var comp = DateComponents()
-        comp.year = yyyy
-        comp.month = MM
-        comp.day = dd
-        return comp
-    }
-    func investigateWeekIndex(w:Int)->(startIdx:Int,endIdx:Int){
-        if(w == 0){
-            let start = getWeekday(dd: 1)
-            return (start,6)
-        }else if (w == (maxWeeks - 1)){
-            let end = getWeekday(dd: lastDay)
-            return (0,end)
-        }else{
-            return (0,6)
-        }
-    }
-    //0-6
-    func getWeekday(dd:Int)->Int{
-        let date = calendar.date(from: makeDateComponents(dd: dd))!
-        return calendar.component(.weekday, from: date) - 1
-    }
-    //絶対に7つ返る 日月火水木金土
-    func getWeekOfMonthDataValues(weekOfMonth:Int)->[Int?]{
-        var values:[Int?] = []
-        var seComp = DateComponents()
-        seComp.year = yyyy
-        seComp.month = MM
-        seComp.weekOfMonth = weekOfMonth
-        for weekday in 1...7 {
-            //曜日1-7
-            seComp.weekday = weekday
-            if let date = calendar.date(from: seComp) {
-                let elapsed = calendar.dateComponents([.day], from:startDate,to:date).day!
-                if let maxElapsedDay, elapsed <= maxElapsedDay{
-                    if let value =  data.first(where: {$0.elapsedDay == elapsed})?.value{
-                        values.append(value)
-                    }else{
-                        values.append(0)
-                    }
-                }else{
-                    values.append(nil)
-                }
-            }
-        }
-        return values
     }
 }
 
@@ -101,5 +52,5 @@ struct MMHeatmapMonthView: View {
     MMHeatmapMonthView(yyyy: 2021, startMM: 2, MM: 2,data:[
         MMHeatmapElapsedData(elapsedDay: 0, value: 5),
         MMHeatmapElapsedData(elapsedDay: 1, value: 7)
-    ], maxValue: 10,maxElapsedDay: 20).environmentObject(MMHeatmapStyle(baseCellColor: UIColor.black)).environmentObject(MMHeatmapLayout())
+    ], maxValue: 10,maxElapsedDay: 20, calendar: Calendar(identifier: .gregorian)).environmentObject(MMHeatmapStyle(baseCellColor: UIColor.black)).environmentObject(MMHeatmapLayout())
 }

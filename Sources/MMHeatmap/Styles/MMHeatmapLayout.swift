@@ -38,22 +38,19 @@ public class MMHeatmapLayout:ObservableObject{
         }
     }
     
-    func calcMMHeatmapMonthViewWidth(year:Int,month:Int)->CGFloat{
-        let calendar = Calendar(identifier: .gregorian)
-        let lastDate = calendar.lastDateOfMonth(year: year, month: month)
-        let weeks = calendar.component(.weekOfMonth, from: lastDate)
+    func calcMMHeatmapMonthViewWidth(year:Int,month:Int,calendar: Calendar = Calendar(identifier: .gregorian))->CGFloat{
+        let weeks = calendar.heatmapWeekColumnCount(year: year, month: month)
         return CGFloat(weeks) * cellSize + CGFloat(weeks - 1) * cellSpacing
     }
     
-    func calcMMHeatmapViewContentWidth(start:Date,end:Date)->CGFloat{
-        let calender = Calendar(identifier: .gregorian)
-        let monthRange = calender.monthRange(start: start, end: end)
-        let startYear = calender.component(.year, from: start)
-        let startMonth = calender.component(.month, from: start)
+    func calcMMHeatmapViewContentWidth(start:Date,end:Date,calendar: Calendar = Calendar(identifier: .gregorian))->CGFloat{
+        let monthRange = calendar.monthRange(start: start, end: end)
+        let startYear = calendar.component(.year, from: start)
+        let startMonth = calendar.component(.month, from: start)
         let months = startMonth ..< (startMonth + monthRange)
         let sumWidth = months.enumerated().map{
             i, m in
-            calcMMHeatmapMonthViewWidth(year: startYear, month: m)
+            calcMMHeatmapMonthViewWidth(year: startYear, month: m, calendar: calendar)
             + (i < months.count - 1 ?  dividerWidth: 0)
         }.reduce(0, +)
         return sumWidth

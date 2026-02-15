@@ -13,6 +13,11 @@ final class MMHeatmapLayoutTests: XCTestCase {
         let layout = MMHeatmapLayout()
         let width = layout.calcMMHeatmapMonthViewWidth(year: 2021, month: 2)
         XCTAssertEqual(width,58) // <- (weeks * cellsize) + (weeks-1) * cellspacing
+
+        var mondayFirst = Calendar(identifier: .gregorian)
+        mondayFirst.firstWeekday = 2
+        let mondayWidth = layout.calcMMHeatmapMonthViewWidth(year: 2025, month: 2, calendar: mondayFirst)
+        XCTAssertEqual(mondayWidth,58)
     }
     
     func testMMHeatmapMonthViewHeight(){

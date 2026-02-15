@@ -15,17 +15,36 @@ Displays a calendar from "start" to "end".
 ```swift
 //"import  MMHeatmap" is required
 
-let calendar = Calendar(identifier: .gregorian)
+var calendar = Calendar.autoupdatingCurrent
 let start = calendar.date(from: DateComponents(year:2021,month: 12,day: 20))!
 let end = calendar.date(from: DateComponents(year:2022,month: 4,day: 3))! // or nil = now
 let data = [
-    MMHeatmapData(year: 2022, month: 3, day: 10, value: 5),
-    MMHeatmapData(year: 2022, month: 4, day:1, value: 10)
+    MMHeatmapData(year: 2022, month: 3, day: 10, value: 5, calendar: calendar),
+    MMHeatmapData(year: 2022, month: 4, day:1, value: 10, calendar: calendar)
 ]
+
+let locale = Locale(identifier: "tr_TR")
+let week = MMHeatmapStyle.localizedWeekSymbols(
+    calendar: calendar,
+    locale: locale,
+    style: .short
+)
 
 //view
 HStack{
-    MMHeatmapView(start: start,end:end, data: data, style: MMHeatmapStyle(baseCellColor: UIColor.systemIndigo,isScroll: true))
+    MMHeatmapView(
+        start: start,
+        end: end,
+        data: data,
+        style: MMHeatmapStyle(
+            baseCellColor: UIColor.systemIndigo,
+            week: week,
+            isScroll: true
+        ),
+        calendar: calendar,
+        locale: locale,
+        timeZone: .autoupdatingCurrent
+    )
     Spacer()
 }
 ```
@@ -37,10 +56,10 @@ Please not duplicate dates in MMHeatmapViewData.
 #### **(year,month,day) or date**
 
 ```swift
-public init(date _date:Date,value:Int)
+public init(date _date:Date,value:Int,calendar: Calendar = Calendar(identifier: .gregorian))
 ```
 ```swift
-public init(year:Int,month:Int,day:Int,value:Int)
+public init(year:Int,month:Int,day:Int,value:Int,calendar: Calendar = Calendar(identifier: .gregorian))
 ```
 
 #### **value:**
@@ -57,6 +76,32 @@ Specify a value greater than or equal to 0.
 | dateMMFormat  | Months format<br>Example: 4<br>"M" = 4<br>"MM" = 04<br>"MMM" = en: Apr , ja: 4月 |     |
 |clippedWithEndDate|**true** : If you want to display cells up to end parameter.<br>**false** : if you want to display cells until the end of the month in the last month.|
 |isScroll|scrolling.<br>*Disabled for iOS13|
+
+### Week labels
+
+`week` should contain exactly 7 items and should be ordered from `calendar.firstWeekday`.
+
+Use `MMHeatmapStyle.localizedWeekSymbols(...)` to generate locale-aware labels in the correct order:
+
+```swift
+let week = MMHeatmapStyle.localizedWeekSymbols(
+    calendar: calendar,
+    locale: locale,
+    style: .short // .veryShort / .short / .full
+)
+```
+
+If an invalid `week` array is passed, MMHeatmap falls back to `Sun...Sat` labels.
+
+`MMHeatmapView` uses the provided `calendar` for date math and week layout semantics.
+
+`locale` is used for textual formatting (month labels), and `week` labels should be ordered from `calendar.firstWeekday` to keep labels aligned with heatmap rows.
+
+### Behavior notes
+
+- `calendar` controls grid/date semantics (including `firstWeekday`).
+- `locale` controls text formatting (for example month names).
+- `maxValue == 0` is handled safely during rendering.
 
 ---
 

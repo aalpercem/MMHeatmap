@@ -37,4 +37,27 @@ final class CalendarTests: XCTestCase {
         let expected = Calendar.current.date(from: DateComponents(year: 2025, month: 3, day: 31))
         XCTAssertEqual(lastDate, expected)
     }
+
+    func testHeatmapWeekdayIndexRespectsFirstWeekday() {
+        let sampleDate = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2025, month: 3, day: 2))! // Sunday
+
+        var sundayFirst = Calendar(identifier: .gregorian)
+        sundayFirst.firstWeekday = 1
+        XCTAssertEqual(sundayFirst.heatmapWeekdayIndex(for: sampleDate), 0)
+
+        var mondayFirst = Calendar(identifier: .gregorian)
+        mondayFirst.firstWeekday = 2
+        XCTAssertEqual(mondayFirst.heatmapWeekdayIndex(for: sampleDate), 6)
+    }
+
+    func testHeatmapWeekColumnCountRespectsFirstWeekday() {
+        var sundayFirst = Calendar(identifier: .gregorian)
+        sundayFirst.firstWeekday = 1
+        XCTAssertEqual(sundayFirst.heatmapWeekColumnCount(year: 2025, month: 3), 6)
+
+        var mondayFirst = Calendar(identifier: .gregorian)
+        mondayFirst.firstWeekday = 2
+        XCTAssertEqual(mondayFirst.heatmapWeekColumnCount(year: 2025, month: 3), 6)
+        XCTAssertEqual(mondayFirst.heatmapWeekColumnCount(year: 2025, month: 2), 5)
+    }
 }

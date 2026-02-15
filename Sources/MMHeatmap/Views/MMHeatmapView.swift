@@ -13,20 +13,30 @@ public struct MMHeatmapView: View {
                 end _end:Date? = nil,
                 data _data:[MMHeatmapData],
                 style:MMHeatmapStyle = MMHeatmapStyle(baseCellColor: .label),
-                layout:MMHeatmapLayout = MMHeatmapLayout()
+                layout:MMHeatmapLayout = MMHeatmapLayout(),
+                calendar: Calendar = Calendar(identifier: .gregorian),
+                locale: Locale? = nil,
+                timeZone: TimeZone? = nil
     ){
-        let cal = Calendar(identifier: .gregorian)
-        let start = _start.truncate([.year,.month])
-        let startYmd = start.getYmdhms()!
-        let end = (_end != nil) ? _end!.truncateHms() : Date().truncateHms()
+        var cal = calendar
+        if let timeZone {
+            cal.timeZone = timeZone
+        }
+        let start = _start.truncate([.year,.month], calendar: cal)
+        let startYear = cal.component(.year, from: start)
+        let startMonth = cal.component(.month, from: start)
+        let end = (_end ?? Date()).truncateHms(calendar: cal)
         let formatter = DateFormatter()
         formatter.dateFormat = style.dateMMFormat
+        formatter.calendar = cal
+        formatter.locale = locale ?? .autoupdatingCurrent
+        formatter.timeZone = timeZone ?? cal.timeZone
         let data = _data.dateRange(start: start, end: end)
         self.displayFormatter = formatter
         self.start = start
         self.end = end
-        self.yyyy = startYmd.year
-        self.MM = startYmd.month
+        self.yyyy = startYear
+        self.MM = startMonth
         self.data = data.compactMap{
             item in
             if let elapsedDay = cal.dateComponents([.day],from:start,to:item.date).day{
@@ -37,17 +47,21 @@ public struct MMHeatmapView: View {
         }
         //x月1日基準で差を求める
         self.range = cal.monthRange(start: start, end: end)
-        self.maxElapsedDay = style.clippedWithEndDate ?  Calendar(identifier: .gregorian).dateComponents([.day],from:start,to:end).day: nil
+        self.maxElapsedDay = style.clippedWithEndDate ? cal.dateComponents([.day],from:start,to:end).day: nil
         self.maxValue = data.max(by:{
             (a, b) -> Bool in
             a.value < b.value
         })?.value ?? 10
         self.style = style
+        self.calendar = cal
+        self.sundayLabelIndex = MMHeatmapView.weekdayIndex(weekday: 1, firstWeekday: cal.firstWeekday)
+        self.saturdayLabelIndex = MMHeatmapView.weekdayIndex(weekday: 7, firstWeekday: cal.firstWeekday)
+        self.safeWeekLabels = MMHeatmapView.normalizedWeekLabels(style.week)
         self._layout = ObservedObject(initialValue: layout)
     }
     @ObservedObject var style:MMHeatmapStyle
     @ObservedObject var layout:MMHeatmapLayout
-    let calendar = Calendar( identifier: .gregorian)
+    let calendar: Calendar
     let displayFormatter:DateFormatter
     let start:Date
     let end:Date
@@ -57,18 +71,23 @@ public struct MMHeatmapView: View {
     let range:Int
     let maxValue:Int
     let maxElapsedDay:Int?
+    let sundayLabelIndex:Int
+    let saturdayLabelIndex:Int
+    let safeWeekLabels:[String]
     public var body: some View {
         HStack(alignment:.bottom){
             VStack{
-                Text(style.week[0])
+                Text(safeWeekLabels[0])
                     .font(.system(size: layout.mmLabelHeight))
-                    .foregroundColor(Color(UIColor.systemRed))
+                    .foregroundColor(labelColor(at: 0))
                 Spacer()
-                Text(style.week[3]).font(.system(size: layout.mmLabelHeight))
-                Spacer()
-                Text(style.week[6])
+                Text(safeWeekLabels[3])
                     .font(.system(size: layout.mmLabelHeight))
-                    .foregroundColor(Color(UIColor.systemBlue))
+                    .foregroundColor(labelColor(at: 3))
+                Spacer()
+                Text(safeWeekLabels[6])
+                    .font(.system(size: layout.mmLabelHeight))
+                    .foregroundColor(labelColor(at: 6))
             }.frame(height: layout.columnHeight).layoutPriority(1)
             HStack(alignment:.bottom,spacing: 0){
                 ForEach( MM ..< (MM + range),id:\.self){
@@ -76,13 +95,13 @@ public struct MMHeatmapView: View {
                     VStack(spacing:0){
                         Text(getMMLabel(MM: i)).font(.system(size: layout.mmLabelHeight)) // actual pixel size: -4 //why???
                             .fixedSize(horizontal: true, vertical: false).padding([.top,.bottom],layout.mmLabelVSpacing)
-                        MMHeatmapMonthView(yyyy: yyyy, startMM: MM, MM: i,data:data, maxValue: maxValue,maxElapsedDay:maxElapsedDay)
+                        MMHeatmapMonthView(yyyy: yyyy, startMM: MM, MM: i,data:data, maxValue: maxValue,maxElapsedDay:maxElapsedDay, calendar: calendar)
                     }.frame(alignment:.bottom).id("MMHeatmapView:\(i)")
                     if(i != (MM + range - 1)){
                         Divider().frame(width:layout.dividerWidth,height: layout.cellSize*7 + layout.cellSpacing*6).offset(x:0,y:15)
                     }
                 }
-            }.modifier(Scroll14(isScroll:style.isScroll, innerContentWidth: layout.calcMMHeatmapViewContentWidth(start: start, end: end),idx:MM + range - 1))
+            }.modifier(Scroll14(isScroll:style.isScroll, innerContentWidth: layout.calcMMHeatmapViewContentWidth(start: start, end: end, calendar: calendar),idx:MM + range - 1))
         }.frame(alignment:.leading).environmentObject(style).environmentObject(layout)
     }
     
@@ -96,6 +115,27 @@ public struct MMHeatmapView: View {
         }else{
             return "\(MM)"
         }
+    }
+
+    func labelColor(at index:Int) -> Color {
+        if index == sundayLabelIndex {
+            return Color(UIColor.systemRed)
+        }
+        if index == saturdayLabelIndex {
+            return Color(UIColor.systemBlue)
+        }
+        return Color.primary
+    }
+
+    static func weekdayIndex(weekday: Int, firstWeekday: Int) -> Int {
+        (weekday - firstWeekday + 7) % 7
+    }
+
+    static func normalizedWeekLabels(_ labels: [String]) -> [String] {
+        if labels.count == 7 {
+            return labels
+        }
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     }
 }
 
@@ -130,45 +170,5 @@ fileprivate struct DisabledScroll:ViewModifier{
             gp in
             content.frame(width:gp.size.width < innerContentWidth ? gp.size.width : innerContentWidth,height:layout.mmHeatmapViewHeight,alignment: .trailing).clipped()
         }.frame(height:layout.mmHeatmapViewHeight)
-    }
-}
-
-#Preview{
-    let calendar = Calendar(identifier: .gregorian)
-    return VStack{
-        //scroll
-        MMHeatmapView(start: calendar.date(from: DateComponents(year:2021,month: 4,day: 20))!,
-                      end:calendar.date(from: DateComponents(year:2022,month: 4,day: 3))!,
-                      data: [MMHeatmapData(year: 2022, month: 4, day:1, value: 10)],
-                      style: MMHeatmapStyle(baseCellColor: UIColor.systemIndigo,isScroll: true)).background(Color.green)
-        
-        //disable scroll
-        MMHeatmapView(start: calendar.date(from: DateComponents(year:2021,month: 4,day: 20))!,
-                      end:calendar.date(from: DateComponents(year:2022,month: 4,day: 3))!,
-                      data: [MMHeatmapData(year: 2022, month: 4, day:1, value: 10)],
-                      style: MMHeatmapStyle(baseCellColor: UIColor.systemIndigo,isScroll: false)).background(Color.green)
-        
-        //scroll (for frameWidth < contentWidth)
-        HStack{
-            MMHeatmapView(start: calendar.date(from: DateComponents(year:2022,month: 3,day: 20))!,
-                          end:Calendar(identifier: .gregorian).date(from: DateComponents(year:2022,month: 4,day: 3))!,
-                          data: [MMHeatmapData(year: 2022, month: 4, day:1, value: 10)],
-                          style: MMHeatmapStyle(baseCellColor: UIColor.systemIndigo,
-                                                isScroll: true),
-                          layout: MMHeatmapLayout(cellSize: 20)
-            ).background(Color.green)
-            Spacer()
-        }
-        
-        //disable scroll (for frameWidth < contentWidth)
-        HStack{
-            MMHeatmapView(start: calendar.date(from: DateComponents(year:2022,month: 3,day: 20))!,
-                          end:calendar.date(from: DateComponents(year:2022,month: 4,day: 3))!,
-                          data: [MMHeatmapData(year: 2022, month: 4, day:1, value: 10)],
-                          style: MMHeatmapStyle(baseCellColor: UIColor.systemIndigo,isScroll: false),
-                          layout: MMHeatmapLayout(cellSize: 20)
-            ).background(Color.green)
-            Spacer()
-        }
     }
 }

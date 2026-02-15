@@ -6,6 +6,13 @@
 //
 
 import SwiftUI
+
+public enum MMHeatmapWeekdaySymbolStyle {
+    case veryShort
+    case short
+    case full
+}
+
 public class MMHeatmapStyle:ObservableObject{
     public init(baseCellColor:UIColor,
                 minCellColor:UIColor = UIColor.secondarySystemBackground,
@@ -26,4 +33,25 @@ public class MMHeatmapStyle:ObservableObject{
     let isScroll:Bool
     public let week:[String]
     public let dateMMFormat:String
+
+    public static func localizedWeekSymbols(
+        calendar: Calendar = Calendar(identifier: .gregorian),
+        locale: Locale = .autoupdatingCurrent,
+        style: MMHeatmapWeekdaySymbolStyle = .short
+    ) -> [String] {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = locale
+        let weekdaySymbols: [String]
+        switch style {
+        case .veryShort:
+            weekdaySymbols = formatter.veryShortStandaloneWeekdaySymbols
+        case .short:
+            weekdaySymbols = formatter.shortStandaloneWeekdaySymbols
+        case .full:
+            weekdaySymbols = formatter.standaloneWeekdaySymbols
+        }
+        let startIndex = max(min(calendar.firstWeekday - 1, 6), 0)
+        return Array(weekdaySymbols[startIndex...]) + Array(weekdaySymbols[..<startIndex])
+    }
 }

@@ -8,26 +8,40 @@
 import Foundation
 
 extension Date{
+    func truncate(_ comps:Set<Calendar.Component>, calendar: Calendar)->Date{
+        let dateComponents = calendar.dateComponents(comps, from: self)
+        return calendar.date(from: dateComponents)!
+    }
+
     func truncate(_ comps:Set<Calendar.Component>)->Date{
-        let cal = Calendar(identifier: .gregorian)
-        let comps = cal.dateComponents(comps, from: self)
-        return cal.date(from: comps)!
+        truncate(comps, calendar: Calendar(identifier: .gregorian))
+    }
+
+    func truncateHms(calendar: Calendar) -> Date{
+        truncate([.year, .month, .day], calendar: calendar)
     }
     
     func truncateHms() -> Date{
-        truncate([.year, .month, .day])
+        truncateHms(calendar: Calendar(identifier: .gregorian))
     }
-    
-    func getYmdhms() -> Ymdhms?{
-        let cal = Calendar(identifier: .gregorian)
-        let comps = cal.dateComponents(
-            [Calendar.Component.year, Calendar.Component.month, Calendar.Component.day,
-             Calendar.Component.hour, Calendar.Component.minute, Calendar.Component.second],
+
+    func getYmdhms(calendar: Calendar) -> Ymdhms?{
+        let dateComponents = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
             from: self)
-        if let year = comps.year, let month = comps.month, let day = comps.day, let hour = comps.hour, let minute = comps.minute, let second = comps.second{
+        if let year = dateComponents.year,
+           let month = dateComponents.month,
+           let day = dateComponents.day,
+           let hour = dateComponents.hour,
+           let minute = dateComponents.minute,
+           let second = dateComponents.second {
             return Ymdhms(year: year, month: month, day: day, hour: hour, minute: minute, second: second)
         }
         return nil
+    }
+    
+    func getYmdhms() -> Ymdhms?{
+        getYmdhms(calendar: Calendar(identifier: .gregorian))
     }
     struct Ymdhms{
         let year:Int
